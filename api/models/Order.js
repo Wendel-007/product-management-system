@@ -1,154 +1,226 @@
 const { getDatabase } = require("../config/database");
 
+const NEXT_ID_KEY = "__nextId__";
+
+// Helper function to get next ID
+async function getNextId(db) {
+	try {
+		const currentId = await db.get(NEXT_ID_KEY);
+		const nextId = currentId ? currentId + 1 : 1;
+		await db.put(NEXT_ID_KEY, nextId);
+		return nextId;
+	} catch (error) {
+		// If key doesn't exist, start from 1
+		if (error.code === "LEVEL_NOT_FOUND") {
+			await db.put(NEXT_ID_KEY, 2);
+			return 1;
+		}
+		throw error;
+	}
+}
+
 class Order {
 	// Find all orders
 	static findAll(callback) {
-		const db = getDatabase();
-		db.all("SELECT * FROM orders ORDER BY id", [], (err, rows) => {
-			if (err) {
-				callback(err, null);
-				return;
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				const orders = [];
+				for await (const [key, value] of db.iterator()) {
+					if (key === NEXT_ID_KEY) continue;
+					
+					orders.push({
+						id: parseInt(key),
+						items: value.items,
+						customer_id: value.customer_id || null,
+					});
+				}
+				
+				// Sort by id
+				orders.sort((a, b) => a.id - b.id);
+				
+				callback(null, orders);
+			} catch (error) {
+				callback(error, null);
 			}
-			// Parse JSON items
-			const orders = rows.map((row) => ({
-				id: row.id,
-				items: JSON.parse(row.items),
-				customer_id: row.customer_id || null,
-			}));
-			callback(null, orders);
-		});
+		})();
 	}
 
 	// Find order by ID
 	static findById(id, callback) {
-		const db = getDatabase();
-		db.get("SELECT * FROM orders WHERE id = ?", [id], (err, row) => {
-			if (err) {
-				callback(err, null);
-				return;
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				const order = await db.get(id.toString());
+				if (!order) {
+					callback(null, null);
+					return;
+				}
+				
+				callback(null, {
+					id: parseInt(id),
+					items: order.items,
+					customer_id: order.customer_id || null,
+				});
+			} catch (error) {
+				if (error.code === "LEVEL_NOT_FOUND") {
+					callback(null, null);
+				} else {
+					callback(error, null);
+				}
 			}
-			if (!row) {
-				callback(null, null);
-				return;
-			}
-			// Parse JSON items
-			const order = {
-				id: row.id,
-				items: JSON.parse(row.items),
-				customer_id: row.customer_id || null,
-			};
-			callback(null, order);
-		});
+		})();
 	}
 
 	// Create new order
 	static create(items, customerId, callback) {
-		const db = getDatabase();
-		const itemsJson = JSON.stringify(items);
-
-		db.run(
-			"INSERT INTO orders (items, customer_id) VALUES (?, ?)",
-			[itemsJson, customerId],
-			function (err) {
-				if (err) {
-					callback(err, null);
-					return;
-				}
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				const id = await getNextId(db);
+				
 				const order = {
-					id: this.lastID,
+					items: items,
+					customer_id: customerId || null,
+				};
+				
+				await db.put(id.toString(), order);
+				
+				callback(null, {
+					id: id,
 					items: items,
 					customer_id: customerId,
-				};
-				callback(null, order);
+				});
+			} catch (error) {
+				callback(error, null);
 			}
-		);
+		})();
 	}
 
 	// Update order
 	static update(id, items, customerId, callback) {
-		const db = getDatabase();
-		const itemsJson = JSON.stringify(items);
-
-		db.run(
-			"UPDATE orders SET items = ?, customer_id = ? WHERE id = ?",
-			[itemsJson, customerId, id],
-			(err) => {
-				if (err) {
-					callback(err, null);
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				// Check if order exists
+				const existing = await db.get(id.toString());
+				if (!existing) {
+					callback(new Error("Order not found"), null);
 					return;
 				}
+				
 				const order = {
-					id: id,
+					items: items,
+					customer_id: customerId || null,
+				};
+				
+				await db.put(id.toString(), order);
+				
+				callback(null, {
+					id: parseInt(id),
 					items: items,
 					customer_id: customerId,
-				};
-				callback(null, order);
+				});
+			} catch (error) {
+				if (error.code === "LEVEL_NOT_FOUND") {
+					callback(new Error("Order not found"), null);
+				} else {
+					callback(error, null);
+				}
 			}
-		);
+		})();
 	}
 
 	// Delete order
 	static delete(id, callback) {
-		const db = getDatabase();
-		db.run("DELETE FROM orders WHERE id = ?", [id], (err) => {
-			if (err) {
-				callback(err, false);
-				return;
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				// Check if order exists
+				const existing = await db.get(id.toString());
+				if (!existing) {
+					callback(new Error("Order not found"), false);
+					return;
+				}
+				
+				await db.del(id.toString());
+				callback(null, true);
+			} catch (error) {
+				if (error.code === "LEVEL_NOT_FOUND") {
+					callback(new Error("Order not found"), false);
+				} else {
+					callback(error, false);
+				}
 			}
-			callback(null, true);
-		});
+		})();
 	}
 
 	// Find orders by product_id
 	static findByProductId(productId, callback) {
-		const db = getDatabase();
-		db.all("SELECT * FROM orders ORDER BY id", [], (err, rows) => {
-			if (err) {
-				callback(err, null);
-				return;
-			}
-			// Filter orders that contain the product
-			const orders = rows
-				.map((row) => {
-					try {
-						const items = JSON.parse(row.items);
-						return {
-							id: row.id,
-							items: items,
-							customer_id: row.customer_id || null,
-						};
-					} catch (e) {
-						return null;
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				const orders = [];
+				for await (const [key, value] of db.iterator()) {
+					if (key === NEXT_ID_KEY) continue;
+					
+					// Check if order contains the product
+					if (value.items && Array.isArray(value.items)) {
+						const hasProduct = value.items.some((item) => item.id === productId);
+						if (hasProduct) {
+							orders.push({
+								id: parseInt(key),
+								items: value.items,
+								customer_id: value.customer_id || null,
+							});
+						}
 					}
-				})
-				.filter((order) => {
-					if (!order) return false;
-					return order.items.some((item) => item.id === productId);
-				});
-			callback(null, orders);
-		});
+				}
+				
+				// Sort by id
+				orders.sort((a, b) => a.id - b.id);
+				
+				callback(null, orders);
+			} catch (error) {
+				callback(error, null);
+			}
+		})();
 	}
 
 	// Find orders by customer_id
 	static findByCustomerId(customerId, callback) {
-		const db = getDatabase();
-		db.all(
-			"SELECT * FROM orders WHERE customer_id = ? ORDER BY id",
-			[customerId],
-			(err, rows) => {
-				if (err) {
-					callback(err, null);
-					return;
+		const db = getDatabase("orders");
+		
+		(async () => {
+			try {
+				const orders = [];
+				for await (const [key, value] of db.iterator()) {
+					if (key === NEXT_ID_KEY) continue;
+					
+					// Check if order belongs to customer
+					if (value.customer_id === customerId) {
+						orders.push({
+							id: parseInt(key),
+							items: value.items,
+							customer_id: value.customer_id || null,
+						});
+					}
 				}
-				// Parse JSON items
-				const orders = rows.map((row) => ({
-					id: row.id,
-					items: JSON.parse(row.items),
-					customer_id: row.customer_id || null,
-				}));
+				
+				// Sort by id
+				orders.sort((a, b) => a.id - b.id);
+				
 				callback(null, orders);
+			} catch (error) {
+				callback(error, null);
 			}
-		);
+		})();
 	}
 }
 
