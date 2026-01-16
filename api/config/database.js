@@ -1,167 +1,96 @@
-const sqlite3 = require("sqlite3").verbose();
+const { ClassicLevel } = require("classic-level");
 const path = require("path");
+const fs = require("fs");
 
-const DB_PATH = path.join(__dirname, "..", "products.db");
+const DB_DIR = path.join(__dirname, "..", "data");
 
-let db = null;
+// Ensure data directory exists
+if (!fs.existsSync(DB_DIR)) {
+	fs.mkdirSync(DB_DIR, { recursive: true });
+}
 
-// Initialize database
-function initDatabase() {
-	return new Promise((resolve, reject) => {
-		db = new sqlite3.Database(DB_PATH, (err) => {
-			if (err) {
-				console.error("Error connecting to database:", err.message);
-				reject(err);
-				return;
-			}
-			console.log("Connected to SQLite database");
+// Database instances
+const databases = {
+	users: null,
+	products: null,
+	customers: null,
+	orders: null,
+};
 
-			// Create products table if it doesn't exist
-			db.run(
-				`CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        value REAL NOT NULL
-      )`,
-				(err) => {
-					if (err) {
-						console.error("Error creating products table:", err.message);
-						reject(err);
-						return;
-					}
-					console.log("Products table created/verified");
-
-					// Create orders table if it doesn't exist
-					db.run(
-						`CREATE TABLE IF NOT EXISTS orders (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          items TEXT NOT NULL,
-          customer_id INTEGER
-        )`,
-						(err) => {
-							if (err) {
-								console.error("Error creating orders table:", err.message);
-								reject(err);
-								return;
-							}
-							console.log("Orders table created/verified");
-
-							// Create customers table if it doesn't exist
-							db.run(
-								`CREATE TABLE IF NOT EXISTS customers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL
-          )`,
-								(err) => {
-									if (err) {
-										console.error(
-											"Error creating customers table:",
-											err.message
-										);
-										reject(err);
-									} else {
-										console.log("Customers table created/verified");
-
-										// Create users table if it doesn't exist
-										db.run(
-											`CREATE TABLE IF NOT EXISTS users (
-                      id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      username TEXT NOT NULL UNIQUE,
-                      password TEXT NOT NULL,
-                      type TEXT NOT NULL DEFAULT 'user',
-                      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )`,
-											(err) => {
-												if (err) {
-													console.error(
-														"Error creating users table:",
-														err.message
-													);
-													reject(err);
-												} else {
-													console.log("Users table created/verified");
-													
-													// Add type column if it doesn't exist (migration)
-													// Check if column exists first
-													db.all("PRAGMA table_info(users)", [], (err, columns) => {
-														if (err) {
-															console.error("Error checking table info:", err.message);
-															resolve(db);
-															return;
-														}
-														
-														const hasTypeColumn = columns.some(col => col.name === 'type');
-														
-														if (!hasTypeColumn) {
-															db.run(
-																`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'user'`,
-																(err) => {
-																	if (err) {
-																		console.error("Error adding type column:", err.message);
-																	} else {
-																		console.log("Type column added to users table");
-																		// Update existing users to 'user' type if null
-																		db.run(
-																			"UPDATE users SET type = 'user' WHERE type IS NULL",
-																			(err) => {
-																				if (err) {
-																					console.error("Error updating existing users:", err.message);
-																				}
-																			}
-																		);
-																	}
-																	resolve(db);
-																}
-															);
-														} else {
-															resolve(db);
-														}
-													});
-												}
-											}
-										);
-									}
-								}
-							);
-						}
-					);
-				}
-			);
+// Initialize all databases
+async function initDatabase() {
+	try {
+		// Initialize users database
+		databases.users = new ClassicLevel(path.join(DB_DIR, "users.db"), {
+			valueEncoding: "json",
 		});
-	});
-}
+		await databases.users.open();
+		console.log("Users database initialized");
 
-// Get database instance
-function getDatabase() {
-	if (!db) {
-		throw new Error("Database not initialized. Call initDatabase() first.");
+		// Initialize products database
+		databases.products = new ClassicLevel(path.join(DB_DIR, "products.db"), {
+			valueEncoding: "json",
+		});
+		await databases.products.open();
+		console.log("Products database initialized");
+
+		// Initialize customers database
+		databases.customers = new ClassicLevel(path.join(DB_DIR, "customers.db"), {
+			valueEncoding: "json",
+		});
+		await databases.customers.open();
+		console.log("Customers database initialized");
+
+		// Initialize orders database
+		databases.orders = new ClassicLevel(path.join(DB_DIR, "orders.db"), {
+			valueEncoding: "json",
+		});
+		await databases.orders.open();
+		console.log("Orders database initialized");
+
+		console.log("All databases initialized successfully");
+	} catch (error) {
+		console.error("Error initializing databases:", error);
+		throw error;
 	}
-	return db;
 }
 
-// Close database connection
-function closeDatabase() {
-	return new Promise((resolve, reject) => {
+// Get database instance by name
+function getDatabase(name) {
+	if (!databases[name]) {
+		throw new Error(`Database '${name}' not initialized. Call initDatabase() first.`);
+	}
+	return databases[name];
+}
+
+// Get all database instances
+function getAllDatabases() {
+	return databases;
+}
+
+// Close all database connections
+async function closeDatabase() {
+	const closePromises = [];
+	
+	for (const [name, db] of Object.entries(databases)) {
 		if (db) {
-			db.close((err) => {
-				if (err) {
-					console.error(err.message);
-					reject(err);
-				} else {
-					console.log("Database connection closed.");
-					db = null;
-					resolve();
-				}
-			});
-		} else {
-			resolve();
+			closePromises.push(
+				db.close().then(() => {
+					console.log(`${name} database closed`);
+				}).catch((err) => {
+					console.error(`Error closing ${name} database:`, err);
+				})
+			);
 		}
-	});
+	}
+	
+	await Promise.all(closePromises);
+	console.log("All database connections closed");
 }
 
 module.exports = {
 	initDatabase,
 	getDatabase,
+	getAllDatabases,
 	closeDatabase,
 };
