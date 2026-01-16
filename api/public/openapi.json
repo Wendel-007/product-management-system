@@ -3,7 +3,7 @@
   "info": {
     "title": "Product Management System API",
     "version": "1.0.0",
-    "description": "RESTful API for product, customer and order management using Node.js, Express and SQLite"
+    "description": "RESTful API for product, customer and order management using Node.js, Express and LevelDB"
   },
   "servers": [
     {
