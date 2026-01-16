@@ -1,6 +1,6 @@
 # Product Management System
 
-Sistema completo de gerenciamento de produtos, clientes e pedidos com API RESTful desenvolvido em Node.js, Express e SQLite, seguindo o padrão arquitetural MVC (Model-View-Controller).
+Sistema completo de gerenciamento de produtos, clientes e pedidos com API RESTful desenvolvido em Node.js, Express e LevelDB, seguindo o padrão arquitetural MVC (Model-View-Controller).
 
 ## 📋 Características
 
@@ -9,7 +9,7 @@ Sistema completo de gerenciamento de produtos, clientes e pedidos com API RESTfu
 - ✅ Sistema de usuários com roles (admin/user)
 - ✅ Interface web para login e testes de API
 - ✅ Documentação interativa da API (OpenAPI/ReDoc)
-- ✅ Banco de dados SQLite
+- ✅ Banco de dados LevelDB (um arquivo por tabela)
 - ✅ Arquitetura MVC
 - ✅ Middlewares de segurança e CORS configurável
 
@@ -25,8 +25,7 @@ npm install
 1. Crie um arquivo `.env` na pasta `api/` com as seguintes variáveis:
 
 ```env
-# Database Configuration
-DB_PATH=products.db
+# Database Configuration (LevelDB - arquivos criados automaticamente em api/data/)
 
 # JWT Configuration (CHANGE THIS IN PRODUCTION!)
 JWT_SECRET=your-secret-key-change-in-production
@@ -96,7 +95,7 @@ product-management-system/
 
 - **Node.js** - Runtime JavaScript
 - **Express** - Framework web
-- **SQLite3** - Banco de dados
+- **classic-level** - Banco de dados LevelDB
 - **JWT (jsonwebtoken)** - Autenticação
 - **bcrypt** - Hash de senhas
 - **CORS** - Configuração de CORS
