@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController");
+const { requireAuth } = require("../middlewares/authMiddleware");
+
+// All product routes require authentication
+router.use(requireAuth);
 
 // GET /api/product - Returns all products
 router.get("/", productController.getAllProducts);

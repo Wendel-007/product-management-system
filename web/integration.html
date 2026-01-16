@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Sistema de Gerenciamento - Product Management</title>
+		<link rel="stylesheet" href="css/integration.css" />
+	</head>
+	<body>
+		<div class="header">
+			<div class="header-content">
+				<div class="logo-section">
+					<h1>📦 Product Management</h1>
+					<p class="subtitle">Sistema de Gerenciamento</p>
+				</div>
+				<div class="user-info">
+					<span id="userName">Carregando...</span>
+					<button class="btn-logout" onclick="logout()">Sair</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="container">
+			<div class="tabs">
+				<button class="tab active" onclick="switchTab('products')">
+					📦 Produtos
+				</button>
+				<button class="tab" onclick="switchTab('customers')">
+					👥 Clientes
+				</button>
+				<button class="tab" onclick="switchTab('orders')">🛒 Pedidos</button>
+			</div>
+
+			<!-- Products Tab -->
+			<div id="products" class="tab-content active">
+				<div class="section-header">
+					<h2>Gerenciamento de Produtos</h2>
+					<button class="btn-primary" onclick="openProductModal()">
+						+ Novo Produto
+					</button>
+				</div>
+
+				<div class="table-container">
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Nome</th>
+								<th>Valor</th>
+								<th>Ações</th>
+							</tr>
+						</thead>
+						<tbody id="products-table-body">
+							<tr>
+								<td colspan="4" class="loading-row">
+									<span class="loading"></span> Carregando produtos...
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- Customers Tab -->
+			<div id="customers" class="tab-content">
+				<div class="section-header">
+					<h2>Gerenciamento de Clientes</h2>
+					<button class="btn-primary" onclick="openCustomerModal()">
+						+ Novo Cliente
+					</button>
+				</div>
+
+				<div class="table-container">
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Nome</th>
+								<th>Email</th>
+								<th>Ações</th>
+							</tr>
+						</thead>
+						<tbody id="customers-table-body">
+							<tr>
+								<td colspan="4" class="loading-row">
+									<span class="loading"></span> Carregando clientes...
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- Orders Tab -->
+			<div id="orders" class="tab-content">
+				<div class="section-header">
+					<h2>Gerenciamento de Pedidos</h2>
+					<button class="btn-primary" onclick="openOrderModal()">
+						+ Novo Pedido
+					</button>
+				</div>
+
+				<div class="table-container">
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Cliente</th>
+								<th>Items</th>
+								<th>Total</th>
+								<th>Data</th>
+								<th>Ações</th>
+							</tr>
+						</thead>
+						<tbody id="orders-table-body">
+							<tr>
+								<td colspan="6" class="loading-row">
+									<span class="loading"></span> Carregando pedidos...
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<!-- Product Modal -->
+		<div id="productModal" class="modal">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="productModalTitle">Novo Produto</h3>
+					<button class="modal-close" onclick="closeProductModal()">
+						&times;
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="productForm" onsubmit="handleProductSubmit(event)">
+						<input type="hidden" id="product-id" />
+						<div class="form-group">
+							<label for="product-name">Nome do Produto</label>
+							<input
+								type="text"
+								id="product-name"
+								required
+								placeholder="Ex: Notebook Dell"
+							/>
+						</div>
+						<div class="form-group">
+							<label for="product-value">Valor (R$)</label>
+							<input
+								type="number"
+								id="product-value"
+								step="0.01"
+								min="0"
+								required
+								placeholder="Ex: 1500.00"
+							/>
+						</div>
+						<div class="modal-actions">
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick="closeProductModal()"
+							>
+								Cancelar
+							</button>
+							<button type="submit" class="btn-primary">Salvar</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- Customer Modal -->
+		<div id="customerModal" class="modal">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="customerModalTitle">Novo Cliente</h3>
+					<button class="modal-close" onclick="closeCustomerModal()">
+						&times;
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="customerForm" onsubmit="handleCustomerSubmit(event)">
+						<input type="hidden" id="customer-id" />
+						<div class="form-group">
+							<label for="customer-name">Nome</label>
+							<input
+								type="text"
+								id="customer-name"
+								required
+								placeholder="Ex: João Silva"
+							/>
+						</div>
+						<div class="form-group">
+							<label for="customer-email">Email</label>
+							<input
+								type="email"
+								id="customer-email"
+								required
+								placeholder="Ex: joao@example.com"
+							/>
+						</div>
+						<div class="modal-actions">
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick="closeCustomerModal()"
+							>
+								Cancelar
+							</button>
+							<button type="submit" class="btn-primary">Salvar</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- Order Modal -->
+		<div id="orderModal" class="modal">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 id="orderModalTitle">Novo Pedido</h3>
+					<button class="modal-close" onclick="closeOrderModal()">
+						&times;
+					</button>
+				</div>
+				<div class="modal-body">
+					<form id="orderForm" onsubmit="handleOrderSubmit(event)">
+						<input type="hidden" id="order-id" />
+						<div class="form-group">
+							<label for="order-customer-id">ID do Cliente (opcional)</label>
+							<input type="number" id="order-customer-id" placeholder="Ex: 1" />
+						</div>
+						<div class="form-group">
+							<label for="order-items">Items (JSON)</label>
+							<textarea
+								id="order-items"
+								required
+								rows="4"
+								placeholder='[{"product_id": 1, "quantity": 2}]'
+							></textarea>
+							<small class="form-help"
+								>Formato: [{"product_id": 1, "quantity": 2}]</small
+							>
+						</div>
+						<div class="modal-actions">
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick="closeOrderModal()"
+							>
+								Cancelar
+							</button>
+							<button type="submit" class="btn-primary">Salvar</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- Toast Notification -->
+		<div id="toast" class="toast"></div>
+
+		<!-- Load JavaScript modules -->
+		<script src="js/api.js"></script>
+		<script src="js/auth.js"></script>
+		<script src="js/products.js"></script>
+		<script src="js/customers.js"></script>
+		<script src="js/orders.js"></script>
+		<script src="js/integration.js"></script>
+	</body>
+</html>

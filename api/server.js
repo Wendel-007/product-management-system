@@ -1,3 +1,4 @@
+require("dotenv").config();
 const app = require("./app");
 const { initDatabase, closeDatabase } = require("./config/database");
 const { ALLOWED_ORIGIN } = require("./config/cors");
