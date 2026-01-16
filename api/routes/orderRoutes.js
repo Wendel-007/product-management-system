@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/orderController");
+const { requireAuth } = require("../middlewares/authMiddleware");
+
+// All order routes require authentication
+router.use(requireAuth);
 
 // GET /api/order - Returns all orders
 router.get("/", orderController.getAllOrders);
