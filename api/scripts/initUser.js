@@ -1,7 +1,6 @@
 require("dotenv").config();
 const {
 	initDatabase,
-	getDatabase,
 	closeDatabase,
 } = require("../config/database");
 const User = require("../models/User");
@@ -37,18 +36,14 @@ async function initDefaultUser() {
 		} else {
 			console.log("ℹ️  Default user already exists");
 			// Update existing user to admin if not already
-			const db = getDatabase();
-			db.run(
-				"UPDATE users SET type = 'admin' WHERE username = ? AND (type IS NULL OR type = 'user')",
-				[username],
-				(err) => {
-					if (err) {
-						console.error("Error updating user type:", err);
-					} else {
-						console.log("✅ User type updated to admin");
-					}
+			if (existingUser.type !== "admin") {
+				try {
+					await User.update(username, { type: "admin" });
+					console.log("✅ User type updated to admin");
+				} catch (error) {
+					console.error("Error updating user type:", error);
 				}
-			);
+			}
 		}
 
 		await closeDatabase();
