@@ -12,18 +12,21 @@
     "api",
     "rest",
     "products",
-    "sqlite"
+    "leveldb"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "classic-level": "^1.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "jsonwebtoken": "^9.0.3",
-    "sqlite3": "^5.1.6"
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "ldbdump": "^1.0.4"
   }
 }
