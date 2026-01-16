@@ -62,7 +62,65 @@ function initDatabase() {
 										reject(err);
 									} else {
 										console.log("Customers table created/verified");
-										resolve(db);
+
+										// Create users table if it doesn't exist
+										db.run(
+											`CREATE TABLE IF NOT EXISTS users (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      username TEXT NOT NULL UNIQUE,
+                      password TEXT NOT NULL,
+                      type TEXT NOT NULL DEFAULT 'user',
+                      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )`,
+											(err) => {
+												if (err) {
+													console.error(
+														"Error creating users table:",
+														err.message
+													);
+													reject(err);
+												} else {
+													console.log("Users table created/verified");
+													
+													// Add type column if it doesn't exist (migration)
+													// Check if column exists first
+													db.all("PRAGMA table_info(users)", [], (err, columns) => {
+														if (err) {
+															console.error("Error checking table info:", err.message);
+															resolve(db);
+															return;
+														}
+														
+														const hasTypeColumn = columns.some(col => col.name === 'type');
+														
+														if (!hasTypeColumn) {
+															db.run(
+																`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'user'`,
+																(err) => {
+																	if (err) {
+																		console.error("Error adding type column:", err.message);
+																	} else {
+																		console.log("Type column added to users table");
+																		// Update existing users to 'user' type if null
+																		db.run(
+																			"UPDATE users SET type = 'user' WHERE type IS NULL",
+																			(err) => {
+																				if (err) {
+																					console.error("Error updating existing users:", err.message);
+																				}
+																			}
+																		);
+																	}
+																	resolve(db);
+																}
+															);
+														} else {
+															resolve(db);
+														}
+													});
+												}
+											}
+										);
 									}
 								}
 							);
